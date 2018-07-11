@@ -9,7 +9,6 @@ import android.widget.Button;
 
 import com.liu.forms.demo.adapter.WeekReportAdapter;
 import com.liu.forms.demo.bean.WorkReportBean;
-import com.liu.forms.demo.helper.ParseHelper;
 import com.liu.forms.nestingrecyclerviewdemo.R;
 
 import java.util.List;
@@ -30,7 +29,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initData() {
-        list = ParseHelper.getParseDatas();
+        list = WeekReportAdapter.getWorkReportList();
     }
 
     private void initView() {
@@ -41,6 +40,13 @@ public class MainActivity extends AppCompatActivity {
         adapter = new WeekReportAdapter(this, list);
         recyclerView.setAdapter(adapter);
         tvAddProject.setOnClickListener(new OnClickListener());
+        adapter.setListener(new WeekReportAdapter.Listener() {
+            @Override
+            public void addContentListener(int addPosition, int itemId) {
+                adapter.addChild(addPosition, itemId);
+                recyclerView.smoothScrollToPosition(addPosition);
+            }
+        });
     }
 
     private class OnClickListener implements View.OnClickListener {

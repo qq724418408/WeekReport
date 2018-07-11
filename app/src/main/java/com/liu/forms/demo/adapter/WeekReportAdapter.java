@@ -8,19 +8,24 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import com.liu.forms.demo.bean.ProjectBean;
 import com.liu.forms.demo.bean.WorkContentBean;
 import com.liu.forms.demo.bean.WorkReportBean;
-import com.liu.forms.demo.bean.ProjectBean;
-import com.liu.forms.demo.helper.ParseHelper;
 import com.liu.forms.demo.utils.ToastUtil;
 import com.liu.forms.nestingrecyclerviewdemo.R;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class WeekReportAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     private List<WorkReportBean> list;
     private Context mContext;
+    private Listener listener;
+
+    public void setListener(Listener listener) {
+        this.listener = listener;
+    }
 
     public WeekReportAdapter(Context context, List<WorkReportBean> list) {
         mContext = context;
@@ -64,9 +69,11 @@ public class WeekReportAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
                             }
                         }
                     }
-                    ToastUtil.showToast("项目编号:" + bean.getItemId() + ",size:" + contentSize);
+                    if (null != listener) {
+                        listener.addContentListener(position + contentSize, bean.getItemId());
+                    }
                     // 添加内容
-                    addChild(position + contentSize, bean.getItemId());
+                    //addChild(position + contentSize, bean.getItemId());
                 }
             });
         } else if (holder instanceof ChildViewHolder) {
@@ -157,7 +164,7 @@ public class WeekReportAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
                 }
             }
         }
-        list.add(addPosition, ParseHelper.newGroupItem(itemId));
+        list.add(addPosition, newProjectBean(itemId));
         WorkContentBean content = new WorkContentBean();
         content.setTitle("项目编号: " + itemId + " 内容编号: " + 0);
         content.setItemType(WorkReportBean.TYPE_WORK_CONTENT);
@@ -182,7 +189,7 @@ public class WeekReportAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
             }
         }
         Log.e(TAG, "addChild: 项目编号：" + itemId);
-        list.add(addPosition, ParseHelper.newChildItem(list, itemId, childId));
+        list.add(addPosition, newWorkContentBean(list, itemId, childId));
         notifyItemInserted(addPosition);//通知演示插入动画
         notifyDataSetChanged();
         //notifyItemRangeChanged(addPosition, list.size() - addPosition);//通知数据与界面重新绑定
@@ -213,6 +220,10 @@ public class WeekReportAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
      */
     public int getLastItemPosition() {
         return list.size();
+    }
+
+    public interface Listener {
+        void addContentListener(int addPosition, int itemId);
     }
 
     public class GroupViewHolder extends RecyclerView.ViewHolder {
@@ -256,5 +267,85 @@ public class WeekReportAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
         public void bindData(WorkContentBean bean) {
             this.bean = bean;
         }
+    }
+
+    private static List<ProjectBean> initList() {
+        List<ProjectBean> list = new ArrayList<>();
+        for (int i = 0; i < 1; i++) {
+            List<WorkContentBean> childList = new ArrayList<>();
+            ProjectBean bean = new ProjectBean();
+            bean.setItemId(i);
+            bean.setItemType(WorkReportBean.TYPE_PROJECT);
+            bean.setTitle("项目编号: " + i);
+            for (int j = 0; j < 1; j++) {
+                WorkContentBean bean1 = new WorkContentBean();
+                bean1.setTitle("项目编号: " + i + " 内容编号: " + j);
+                bean1.setItemType(WorkReportBean.TYPE_WORK_CONTENT);
+                bean1.setGroupId(i);//child的groupId对应当前
+                bean1.setItemId(bean.getItemId());//child的itemId和其父group的itemId一致
+                childList.add(bean1);
+            }
+            bean.setContentList(childList);
+            list.add(bean);
+        }
+        return list;
+    }
+
+    public static List<WorkReportBean> getWorkReportList() {
+        List<WorkReportBean> list = new ArrayList<>();
+        for (ProjectBean bean : initList()) {
+            list.add(bean);//group
+            for (WorkContentBean bean1 : bean.getContentList()) {
+                list.add(bean1);//child
+            }
+        }
+        return list;
+    }
+
+    /**
+     * 取出list中的项目ProjectBean
+     *
+     * @param beans
+     * @param itemId
+     * @return ProjectBean
+     */
+    public static ProjectBean getProjectBean(List<WorkReportBean> beans, int itemId) {
+        for (WorkReportBean bean : beans) {
+            if (bean.getItemType() == WorkReportBean.TYPE_PROJECT && bean.getItemId() == itemId) {
+                return (ProjectBean) bean;
+            }
+        }
+        return null;
+    }
+
+    public static ProjectBean newProjectBean(int itemId) {
+        List<WorkContentBean> list = new ArrayList<>();
+        ProjectBean bean = new ProjectBean();
+        bean.setItemId(itemId);
+        bean.setItemType(WorkReportBean.TYPE_PROJECT);
+        bean.setTitle("项目编号: " + itemId);
+        bean.setContentList(list);
+        return bean;
+    }
+
+    /**
+     * 添加工作内容
+     *
+     * @param beans
+     * @param itemId
+     * @param childId
+     * @return
+     */
+    public static WorkContentBean newWorkContentBean(List<WorkReportBean> beans, int itemId, int childId) {
+        ProjectBean projectBean = getProjectBean(beans, itemId);
+        WorkContentBean bean = new WorkContentBean();
+        bean.setGroupId(itemId);
+        bean.setItemId(itemId);
+        bean.setItemType(WorkReportBean.TYPE_WORK_CONTENT);
+        bean.setTitle("项目编号: " + itemId + " 内容编号: " + childId);
+        if (projectBean != null) {
+            projectBean.getContentList().add(bean);
+        }
+        return bean;
     }
 }
